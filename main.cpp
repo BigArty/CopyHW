@@ -36,35 +36,35 @@ void errorArg() {
     exit(-1);
 }
 
-void cpSMT(string src, string dst, bool isFile) {
+int cpSMT(string src, string dst, bool isFile) {
     //printf("%s\n",src.c_str());
     if (isFile) {
         struct stat srcStat;
         if (lstat(src.c_str(), &srcStat) < 0) {
             string s = "File " + src + " isn't copied.";
             perror(s.c_str());
-            return;
+            return 0;
         }
         int fdin = open(src.c_str(), O_RDONLY);
         if (fdin < 0) {
             string s = "File " + src + " isn't copied.";
             perror(s.c_str());
-            return;
+            return 0;
         }
         struct stat dstStat;
         if ((lstat(dst.c_str(), &dstStat) == 0)) {
             if (S_ISDIR(dstStat.st_mode)) {
-                string s = "File " + src + " isn't copied. Did with such name existed.";
-                perror(s.c_str());
+                string s = "File " + src + " isn't copied. Dir with such name already existed.\n";
+                printf(s.c_str());
                 close(fdin);
-                return;
+                return 0;
             }
             string reName = dst + ".old";
             if (rename(dst.c_str(), reName.c_str()) != 0) {
                 string s = "File " + src + " isn't copied. Can't rename old file.";
                 perror(s.c_str());
                 close(fdin);
-                return;
+                return 0;
             }
 
         }
@@ -73,7 +73,7 @@ void cpSMT(string src, string dst, bool isFile) {
             string s = "File " + src + " isn't copied. Can't create file.";
             perror(s.c_str());
             close(fdin);
-            return;
+            return 0;
         }
         char buf[4096];
         int rd;
@@ -85,7 +85,7 @@ void cpSMT(string src, string dst, bool isFile) {
             perror(s.c_str());
             close(fdout);
             close(fdin);
-            return;
+            return 0;
         }
         struct utimbuf time;
         time.actime = srcStat.st_atime;
@@ -95,7 +95,7 @@ void cpSMT(string src, string dst, bool isFile) {
             perror(s.c_str());
             close(fdout);
             close(fdin);
-            return;
+            return 0;
         }
         if (chmod(dst.c_str(), srcStat.st_mode) < 0) {
             string s = "Can't change mode in " + dst;
@@ -103,20 +103,29 @@ void cpSMT(string src, string dst, bool isFile) {
         }
         close(fdout);
         close(fdin);
-        return;
+        return 0;
     } else {
         struct stat dirStat;
         if (stat(src.c_str(), &dirStat) != 0) {
             string s = "Dir " + src + " isn't copied";
             perror(s.c_str());
-            exit(2);
+            //exit(2);
+            return -1;
         }
         if (access(dst.c_str(), F_OK) == -1) {
             if (mkdir(dst.c_str(), dirStat.st_mode) != 0) {
                 string s = "Dir " + src + " isn't copied";
                 perror(s.c_str());
-                exit(2);
+                //exit(2);
+                return -1;
             }
+        }
+        struct stat dstStat;
+        lstat(dst.c_str(), &dstStat);
+        if (S_ISDIR(dstStat.st_mode)) {
+            string s = "Dir " + src + " isn't copied. File with such name already existed.";
+            printf(s.c_str());
+            return -1;
         }
     }
 }
@@ -172,13 +181,18 @@ bool copy(Tree *point, pthread_mutex_t *mutex) {
     if (!point->isWorking) {
         point->isWorking = true;
         pthread_mutex_unlock(mutex);
-        cpSMT(point->src, point->dst, point->isFile);
+        int i = cpSMT(point->src, point->dst, point->isFile);
         pthread_mutex_lock(mutex);
         point->isReady = true;
         if (point->isFile) {
             point->isCopied = true;
             return true;
-        }
+        } else {
+            if (i < 0) {
+                point->isCopied = true;
+                return true;
+            }
+        };
     }
     return false;
 }
