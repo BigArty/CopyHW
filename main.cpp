@@ -1,3 +1,4 @@
+//1.41  cp1.02 t10_1.37 t2_4.55 t3_2.44       t3_1.03 t3_1.16
 #include <pthread.h>
 #include <vector>
 #include <stdio.h>
@@ -8,7 +9,6 @@
 #include <string.h>
 #include <sys/stat.h>
 #include <dirent.h>
-#include <stdlib.h>
 
 using namespace std;
 
@@ -41,27 +41,27 @@ int cpSMT(string src, string dst, bool isFile) {
     if (isFile) {
         struct stat srcStat;
         if (lstat(src.c_str(), &srcStat) < 0) {
-            string s = "File " + src + " isn't copied.";
+            string s = "File " + src + " isn't copied";
             perror(s.c_str());
             return 0;
         }
         int fdin = open(src.c_str(), O_RDONLY);
         if (fdin < 0) {
-            string s = "File " + src + " isn't copied.";
+            string s = "File " + src + " isn't copied";
             perror(s.c_str());
             return 0;
         }
         struct stat dstStat;
         if ((lstat(dst.c_str(), &dstStat) == 0)) {
             if (S_ISDIR(dstStat.st_mode)) {
-                string s = "File " + src + " isn't copied. Dir with such name already existed.\n";
-                printf(s.c_str());
+                string s = "File " + src + " isn't copied. Dir with such name is already existed.";
+                printf("%s\n",s.c_str());
                 close(fdin);
                 return 0;
             }
             string reName = dst + ".old";
             if (rename(dst.c_str(), reName.c_str()) != 0) {
-                string s = "File " + src + " isn't copied. Can't rename old file.";
+                string s = "File " + src + " isn't copied. Can't rename old file";
                 perror(s.c_str());
                 close(fdin);
                 return 0;
@@ -70,7 +70,7 @@ int cpSMT(string src, string dst, bool isFile) {
         }
         int fdout = open(dst.c_str(), O_WRONLY | O_CREAT);
         if (fdout < 0) {
-            string s = "File " + src + " isn't copied. Can't create file.";
+            string s = "File " + src + " isn't copied. Can't create file";
             perror(s.c_str());
             close(fdin);
             return 0;
@@ -120,13 +120,21 @@ int cpSMT(string src, string dst, bool isFile) {
                 return -1;
             }
         }
-        struct stat dstStat;
-        lstat(dst.c_str(), &dstStat);
-        if (S_ISDIR(dstStat.st_mode)) {
-            string s = "Dir " + src + " isn't copied. File with such name already existed.";
-            printf(s.c_str());
-            return -1;
+        else {
+            struct stat dstStat;
+            if ((lstat(dst.c_str(), &dstStat) != 0)) {
+                string s = "Dir " + src + " isn't copied";
+                perror(s.c_str());
+                //exit(2);
+                return -1;
+            }
+            if (!S_ISDIR(dstStat.st_mode)) {
+                string s = "Dir " + src + " isn't copied. File with such name is already existed.";
+                printf("%s\n",s.c_str());
+                return -1;
+            }
         }
+        return 0;
     }
 }
 
