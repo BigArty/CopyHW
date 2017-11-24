@@ -224,9 +224,6 @@ int main(int argc, char **argv) {
     makeTree(src, dst, root);
     //printTree(root);
     //printf("\n\n");
-
-
-
     pthread_mutex_t mutex;
     pthread_mutex_init(&mutex, NULL);
     vector<pthread_t> thrds(threads);
@@ -235,7 +232,6 @@ int main(int argc, char **argv) {
         args[i].mutex = &mutex;
         args[i].root = root;
     }
-
     for (int i = 0; i < threads; i++) {
         if (pthread_create(&thrds[i], NULL, thread, &args[i]) != 0) {
             perror("thread create");
@@ -245,10 +241,6 @@ int main(int argc, char **argv) {
     for (int i = 0; i < threads; i++) {
         pthread_join(thrds[i], NULL);
     }
-
-
     //cpSMT("neFile", "test/neFile", false);//test
-
-
     return 0;
 }
